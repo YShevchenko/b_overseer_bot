@@ -1,0 +1,15 @@
+# Gradle
+.gradle/
+**/build/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+*.iml
+.idea/
+.vscode/
+
+# OS
+.DS_Store
