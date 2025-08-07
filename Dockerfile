@@ -16,4 +16,5 @@ ENV TARGET_CHANNEL_USERNAME="binaryx_platform_bot"
 ENV KEYWORDS="airdrop,claim,free,bonus,reward,presale,ico,token,launch,listing,partnership,announcement,update,news,important"
 ENV SUBSCRIPTIONS_FILE="/app/subscriptions.json"
 
+EXPOSE 8000
 ENTRYPOINT ["java","-jar","/app/app.jar"]
