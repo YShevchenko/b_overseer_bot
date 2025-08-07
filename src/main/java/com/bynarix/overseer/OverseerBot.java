@@ -2,10 +2,13 @@ package com.bynarix.overseer;
 
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
@@ -20,25 +23,41 @@ public class OverseerBot extends TelegramLongPollingBot {
     private final String targetChannelUsername = System.getenv().getOrDefault("TARGET_CHANNEL_USERNAME", "binaryx_platform_bot");
     private final String subscriptionsFile = System.getenv().getOrDefault("SUBSCRIPTIONS_FILE", "subscriptions.json");
 
-    private final List<String> defaultKeywords;
+    private final List<String> globalKeywords; // from KEYWORDS env, may be empty
     private final SubscriptionStore subscriptionStore;
 
     public OverseerBot() {
-        String rawKeywords = System.getenv().getOrDefault("KEYWORDS",
-                String.join(",",
-                        Arrays.asList(
-                                "airdrop","claim","free","bonus","reward",
-                                "presale","ico","token","launch","listing",
-                                "partnership","announcement","update","news","important"
-                        )));
-        defaultKeywords = Arrays.stream(rawKeywords.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(String::toLowerCase)
-                .distinct()
-                .collect(Collectors.toList());
+        String rawKeywords = System.getenv("KEYWORDS");
+        if (rawKeywords == null || rawKeywords.isBlank()) {
+            globalKeywords = Collections.emptyList();
+        } else {
+            globalKeywords = Arrays.stream(rawKeywords.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(String::toLowerCase)
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
         subscriptionStore = new SubscriptionStore(subscriptionsFile);
         log.info("OverseerBot started. Monitoring target: @{}", stripAt(targetChannelUsername));
+        registerCommands();
+    }
+
+    private void registerCommands() {
+        List<BotCommand> cmds = List.of(
+                new BotCommand("start", "Show welcome and commands"),
+                new BotCommand("help", "Show help"),
+                new BotCommand("keywords", "Show global keywords (from KEYWORDS env)"),
+                new BotCommand("subscribe", "Subscribe to keywords: /subscribe k1,k2"),
+                new BotCommand("unsubscribe", "Unsubscribe keywords: /unsubscribe k1,k2"),
+                new BotCommand("subscriptions", "List your keywords"),
+                new BotCommand("clear", "Clear your keywords")
+        );
+        try {
+            execute(new SetMyCommands(cmds, new BotCommandScopeDefault(), null));
+        } catch (TelegramApiException e) {
+            log.warn("Failed to set commands: {}", e.toString());
+        }
     }
 
     @Override
@@ -85,7 +104,7 @@ public class OverseerBot extends TelegramLongPollingBot {
                         "/unsubscribe <k1,k2,...> — remove keywords\n" +
                         "/subscriptions — list your keywords\n" +
                         "/clear — clear your keywords\n" +
-                        "/keywords — show default keywords\n" +
+                        "/keywords — show global keywords\n" +
                         "/help — show help");
                 break;
             case "/help":
@@ -97,7 +116,11 @@ public class OverseerBot extends TelegramLongPollingBot {
                         "/keywords");
                 break;
             case "/keywords":
-                safeReply(chatId, "Default keywords:\n" + String.join(", ", defaultKeywords));
+                if (globalKeywords.isEmpty()) {
+                    safeReply(chatId, "Global keywords: (none configured). Set KEYWORDS env to enable global alerts.");
+                } else {
+                    safeReply(chatId, "Global keywords:\n" + String.join(", ", globalKeywords));
+                }
                 break;
             case "/subscriptions":
                 Set<String> cur = subscriptionStore.getKeywordsForChat(chatId);
@@ -156,10 +179,15 @@ public class OverseerBot extends TelegramLongPollingBot {
         if (link != null) base.append("\n\nLink: ").append(link);
         String alertText = base.toString();
 
-        if (globalNotifyChatId != null && !globalNotifyChatId.isBlank()) {
-            notifyChat(globalNotifyChatId, alertText);
+        // Notify global only if globalKeywords configured and matched
+        if (!globalKeywords.isEmpty() && globalNotifyChatId != null && !globalNotifyChatId.isBlank()) {
+            boolean globalHit = globalKeywords.stream().anyMatch(textLower::contains);
+            if (globalHit) {
+                notifyChat(globalNotifyChatId, alertText);
+            }
         }
 
+        // Notify subscribers whose sets match
         Map<String, Set<String>> all = subscriptionStore.snapshotAll();
         for (Map.Entry<String, Set<String>> e : all.entrySet()) {
             String subscriberChatId = e.getKey();
