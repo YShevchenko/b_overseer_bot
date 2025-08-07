@@ -6,7 +6,7 @@ Important Telegram rules:
 
 ### Features
 - Java 21, SLF4J logging
-- Per-user keyword subscriptions: /subscribe, /unsubscribe, /subscriptions, /clear
+- Per-user keyword subscriptions: /sub, /unsub, /subscriptions, /clear
 - Commands registered for autocomplete in Telegram clients
 - Optional global notifications via `NOTIFY_CHAT_ID` if `KEYWORDS` env is set
 - Dockerized; deploy on Fly.io/Koyeb free tiers
@@ -31,8 +31,8 @@ Tip: Use `@RawDataBot` to find your own user ID or a chat ID.
 ### Bot commands (DM the bot)
 - /start — show help
 - /keywords — show global keywords (from KEYWORDS env; may be none)
-- /subscribe k1,k2 — add keywords to your personal watchlist
-- /unsubscribe k1,k2 — remove keywords
+- /sub k1,k2 — add keywords to your personal watchlist
+- /unsub k1,k2 — remove keywords
 - /subscriptions — list your keywords
 - /clear — remove all your keywords
 

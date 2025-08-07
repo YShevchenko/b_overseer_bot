@@ -48,8 +48,8 @@ public class OverseerBot extends TelegramLongPollingBot {
                 new BotCommand("start", "Show welcome and commands"),
                 new BotCommand("help", "Show help"),
                 new BotCommand("keywords", "Show global keywords (from KEYWORDS env)"),
-                new BotCommand("subscribe", "Subscribe to keywords: /subscribe k1,k2"),
-                new BotCommand("unsubscribe", "Unsubscribe keywords: /unsubscribe k1,k2"),
+                new BotCommand("sub", "Subscribe to keywords: /sub k1,k2"),
+                new BotCommand("unsub", "Unsubscribe keywords: /unsub k1,k2"),
                 new BotCommand("subscriptions", "List your keywords"),
                 new BotCommand("clear", "Clear your keywords")
         );
@@ -100,8 +100,8 @@ public class OverseerBot extends TelegramLongPollingBot {
             case "/start":
                 safeReply(chatId, "🤖 bynarix-overseer\n\n" +
                         "Commands:\n" +
-                        "/subscribe <k1,k2,...> — subscribe to keywords\n" +
-                        "/unsubscribe <k1,k2,...> — remove keywords\n" +
+                        "/sub <k1,k2,...> — subscribe to keywords\n" +
+                        "/unsub <k1,k2,...> — remove keywords\n" +
                         "/subscriptions — list your keywords\n" +
                         "/clear — clear your keywords\n" +
                         "/keywords — show global keywords\n" +
@@ -109,8 +109,8 @@ public class OverseerBot extends TelegramLongPollingBot {
                 break;
             case "/help":
                 safeReply(chatId, "Usage:\n" +
-                        "/subscribe airdrop,claim\n" +
-                        "/unsubscribe claim\n" +
+                        "/sub airdrop,claim\n" +
+                        "/unsub claim\n" +
                         "/subscriptions\n" +
                         "/clear\n" +
                         "/keywords");
@@ -125,18 +125,20 @@ public class OverseerBot extends TelegramLongPollingBot {
             case "/subscriptions":
                 Set<String> cur = subscriptionStore.getKeywordsForChat(chatId);
                 if (cur.isEmpty()) {
-                    safeReply(chatId, "You have no subscriptions. Use /subscribe <k1,k2,...>");
+                    safeReply(chatId, "You have no subscriptions. Use /sub <k1,k2,...>");
                 } else {
                     safeReply(chatId, "Your keywords:\n" + String.join(", ", cur));
                 }
                 break;
-            case "/subscribe":
+            case "/sub":
+            case "/subscribe": // legacy alias
                 Set<String> toAdd = parseKeywords(args);
                 int added = subscriptionStore.subscribe(chatId, toAdd);
                 if (added == 0) safeReply(chatId, "Nothing to add. Provide keywords.");
                 else safeReply(chatId, "Added " + added + " keyword(s). Use /subscriptions to view.");
                 break;
-            case "/unsubscribe":
+            case "/unsub":
+            case "/unsubscribe": // legacy alias
                 Set<String> toRemove = parseKeywords(args);
                 int removed = subscriptionStore.unsubscribe(chatId, toRemove);
                 if (removed == 0) safeReply(chatId, "Nothing to remove.");
