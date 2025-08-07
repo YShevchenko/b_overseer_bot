@@ -36,5 +36,9 @@ Tip: Use `@RawDataBot` to find your own user ID or a chat ID.
 - /subscriptions — list your keywords
 - /clear — remove all your keywords
 
+### CI/ops helpers
+- After pushing, stop local container: `./scripts/push_and_stop.ps1` (PowerShell)
+  - Usage: `./scripts/push_and_stop.ps1` (uses current branch), or `./scripts/push_and_stop.ps1 -remote origin -branch master`
+
 ### How matching works
 - The bot matches messages from the target channel (or forwarded posts) against subscribers’ keyword sets. When a match occurs, it notifies matching subscribers. If `KEYWORDS` is set and a message matches any of them, it also notifies `NOTIFY_CHAT_ID`.
